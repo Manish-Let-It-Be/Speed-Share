@@ -1,4 +1,3 @@
-# SpeedShare
 <a href="https://speed-share.vercel.app/">
     <img src="SpeedShare.gif" alt="SpeedShare User Interface" height="120">
 </a>
