@@ -1,4 +1,7 @@
 # SpeedShare
+<a href="https://speed-share.vercel.app/">
+    <img src="SpeedShare.jpg" alt="SpeedShare User Interface" height="120">
+</a>
 
 **SpeedShare** is a web application designed to make file and text/code snippet sharing simple and efficient. With SpeedShare, you can upload files (images, videos, documents, music, APKs, software, etc.) (up to 50 MB) or share snippets seamlessly using unique codes.
 
