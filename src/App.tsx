@@ -8,11 +8,11 @@ import { nanoid } from 'nanoid';
 import { Zap, Github } from 'lucide-react';
 import { generateShareCode, storeItem, removeItem } from './utils/shareCode';
 import { Button } from './components/Button';
-import { IntroText } from './components/IntroText';
 
 function App() {
   const [items, setItems] = useState<SharedItem[]>([]);
   const [text, setText] = useState('');
+  const [uploading, setUploading] = useState(false);
 
   const simulateUpload = async (file: File, id: string) => {
     const chunks = 10;
@@ -29,65 +29,97 @@ function App() {
   };
 
   const handleFileSelect = async (files: File[]) => {
-    const newItems: FileItem[] = await Promise.all(
-      files.map(async (file) => {
-        const id = nanoid();
-        const shareCode = generateShareCode();
-        const item: FileItem = {
-          id,
-          type: 'file',
-          name: file.name,
-          content: URL.createObjectURL(file),
-          size: file.size,
-          mimeType: file.type,
-          createdAt: new Date(),
-          shareCode,
-          uploadProgress: 0,
-        };
-        storeItem(shareCode, item);
-        simulateUpload(file, id);
-        return item;
-      })
-    );
-    setItems((prev) => [...newItems, ...prev]);
+    setUploading(true);
+    try {
+      const newItems: FileItem[] = await Promise.all(
+        files.map(async (file) => {
+          const id = nanoid();
+          const shareCode = generateShareCode();
+          
+          // Convert file to base64
+          const base64 = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+          });
+
+          const item: FileItem = {
+            id,
+            type: 'file',
+            name: file.name,
+            content: base64,
+            size: file.size,
+            mimeType: file.type,
+            createdAt: new Date(),
+            shareCode,
+            uploadProgress: 0,
+          };
+
+          try {
+            await storeItem(shareCode, item);
+            simulateUpload(file, id);
+            return item;
+          } catch (error) {
+            console.error('Error storing file:', error);
+            throw error;
+          }
+        })
+      );
+      setItems((prev) => [...newItems, ...prev]);
+    } catch (error) {
+      console.error('Error handling files:', error);
+      alert('Failed to upload files. Please try again.');
+    } finally {
+      setUploading(false);
+    }
   };
 
-  const handleTextShare = () => {
+  const handleTextShare = async () => {
     if (!text.trim()) return;
     
-    const shareCode = generateShareCode();
-    const newItem: SharedItem = {
-      id: nanoid(),
-      type: 'text',
-      name: `Text Snippet ${new Date().toLocaleTimeString()}`,
-      content: text,
-      createdAt: new Date(),
-      shareCode,
-    };
-    
-    storeItem(shareCode, newItem);
-    setItems((prev) => [newItem, ...prev]);
-    setText('');
+    setUploading(true);
+    try {
+      const shareCode = generateShareCode();
+      const newItem: SharedItem = {
+        id: nanoid(),
+        type: 'text',
+        name: `Text Snippet ${new Date().toLocaleTimeString()}`,
+        content: text,
+        createdAt: new Date(),
+        shareCode,
+      };
+      
+      await storeItem(shareCode, newItem);
+      setItems((prev) => [newItem, ...prev]);
+      setText('');
+    } catch (error) {
+      console.error('Error sharing text:', error);
+      alert('Failed to share text. Please try again.');
+    } finally {
+      setUploading(false);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    const item = items.find(item => item.id === id);
-    if (item?.shareCode) {
-      removeItem(item.shareCode);
+  const handleDelete = async (id: string) => {
+    try {
+      const item = items.find(item => item.id === id);
+      if (item?.shareCode) {
+        await removeItem(item.shareCode);
+      }
+      setItems((prev) => prev.filter((item) => item.id !== id));
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      alert('Failed to delete item. Please try again.');
     }
-    setItems((prev) => prev.filter((item) => item.id !== id));
   };
 
   return (
-    <div className="min-h-screen bg-dark text-white font-mono">
+    <div className="min-h-screen bg-dark text-white font-mono relative pb-20">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
         <div className="flex items-center justify-center mb-12">
-          <div className="text-center">
-            <div className="flex items-center justify-center space-x-4 mb-4">
-              <Zap className="w-8 sm:w-10 h-8 sm:h-10 text-primary animate-glow" />
-              <h1 className="text-3xl sm:text-4xl font-bold text-primary">SpeedShare</h1>
-            </div>
-            <IntroText />
+          <div className="flex items-center space-x-4">
+            <Zap className="w-8 sm:w-10 h-8 sm:h-10 text-primary animate-glow" />
+            <h1 className="text-3xl sm:text-4xl font-bold text-primary">SpeedShare</h1>
           </div>
         </div>
 
@@ -96,7 +128,7 @@ function App() {
 
           <div className="bg-dark-lighter p-4 sm:p-8 rounded-xl border border-primary/10">
             <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6 text-primary">Share Files</h2>
-            <FileUpload onFileSelect={handleFileSelect} />
+            <FileUpload onFileSelect={handleFileSelect} disabled={uploading} />
           </div>
 
           <div className="bg-dark-lighter p-4 sm:p-8 rounded-xl border border-primary/10">
@@ -105,10 +137,10 @@ function App() {
               <TextEditor value={text} onChange={setText} />
               <Button
                 onClick={handleTextShare}
-                disabled={!text.trim()}
+                disabled={!text.trim() || uploading}
                 tooltip="Share text content with others"
               >
-                Share Text
+                {uploading ? 'Sharing...' : 'Share Text'}
               </Button>
             </div>
           </div>
@@ -120,10 +152,10 @@ function App() {
             </div>
           )}
         </div>
-        
-        <div className="mb-12"></div>
-        
-        <div className="relative bottom-4 left-1/2 transform -translate-x-1/2">
+      </div>
+      
+      <footer className="flexed bottom-0 left-0 right-0 bg-dark-lighter border-t border-primary/10 py-4">
+        <div className="flex justify-center">
           <a
             href="https://github.com/Manish-Let-It-Be"
             target="_blank"
@@ -132,7 +164,7 @@ function App() {
           >
             <Button
               variant="secondary"
-              tooltip="Visit GitHub profile"
+              tooltip="Visit creator's GitHub profile"
               className="flex items-center space-x-2 text-sm"
             >
               <Github className="w-4 h-4" />
@@ -140,7 +172,7 @@ function App() {
             </Button>
           </a>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }
