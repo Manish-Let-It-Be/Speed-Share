@@ -5,6 +5,21 @@
 **SpeedShare** is a web application designed to make file and text/code snippet sharing simple and efficient. With SpeedShare, you can upload files (images, videos, documents, music, APKs, software, etc.) (up to 50 MB) or share snippets seamlessly using unique codes.
 
 ---
+# Table of Contents
+
+- [Features](#-features)
+  - [File Sharing](#-file-sharing)
+  - [Text/Code Sharing](#-textcode-sharing)
+- [How to Use](#-how-to-use)
+  - [Share Files](#-share-files)
+  - [Receive Files](#-receive-files)
+  - [Share Text/Code](#-share-textcode)
+- [Screenshot](#-screenshot)
+- [Live Project](#-live-project)
+- [Built With](#-built-with)
+- [Contributing](#-contributing)
+
+---
 
 ## 📌 Features
 
