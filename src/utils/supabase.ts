@@ -3,33 +3,52 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = 'https://hxdbvzzvrazummsadgsu.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh4ZGJ2enp2cmF6dW1tc2FkZ3N1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM1ODY1MDMsImV4cCI6MjA0OTE2MjUwM30.zOO7sh2qeeTZeRjIPpx9dd5rmBh7DQyFLh8v9zc6qNU';
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: false
+  }
+});
+
+const MAX_CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
+
+async function uploadInChunks(file: File, shareCode: string): Promise<string> {
+  const totalChunks = Math.ceil(file.size / MAX_CHUNK_SIZE);
+  const fileName = `${shareCode}/${file.name}`;
+  
+  for (let i = 0; i < totalChunks; i++) {
+    const start = i * MAX_CHUNK_SIZE;
+    const end = Math.min(start + MAX_CHUNK_SIZE, file.size);
+    const chunk = file.slice(start, end);
+    
+    const { error } = await supabase.storage
+      .from('speedshare')
+      .upload(fileName + (i === 0 ? '' : `.part${i}`), chunk, {
+        cacheControl: '3600',
+        upsert: i === 0
+      });
+
+    if (error) throw error;
+  }
+
+  return fileName;
+}
 
 export const uploadFile = async (file: File, shareCode: string) => {
   try {
-    // First, ensure the bucket policy allows this upload
-    const { data: bucketData, error: bucketError } = await supabase.storage
-      .from('speedshare')
-      .upload(`${shareCode}/${file.name}`, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
+    const filePath = await uploadInChunks(file, shareCode);
 
-    if (bucketError) throw bucketError;
-
-    // Create a record in shared_files table to track the file
     const { error: recordError } = await supabase
       .from('shared_files')
       .insert([{
         share_code: shareCode,
         file_name: file.name,
-        file_path: `${shareCode}/${file.name}`,
+        file_path: filePath,
         mime_type: file.type
       }]);
 
     if (recordError) throw recordError;
 
-    return bucketData;
+    return { filePath };
   } catch (error) {
     console.error('Upload error:', error);
     throw error;
@@ -38,7 +57,7 @@ export const uploadFile = async (file: File, shareCode: string) => {
 
 export const uploadText = async (text: string, shareCode: string) => {
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('shared_texts')
       .insert([{
         share_code: shareCode,
@@ -47,7 +66,6 @@ export const uploadText = async (text: string, shareCode: string) => {
       }]);
 
     if (error) throw error;
-    return data;
   } catch (error) {
     console.error('Text upload error:', error);
     throw error;
