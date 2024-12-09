@@ -127,7 +127,7 @@ function App() {
           <ReceivePanel />
 
           <div className="bg-dark-lighter p-4 sm:p-8 rounded-xl border border-primary/10">
-            <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6 text-primary">Share Files</h2>
+            <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6 text-primary">Share Files (<50MB)</h2>
             <FileUpload onFileSelect={handleFileSelect} disabled={uploading} />
           </div>
 
