@@ -26,14 +26,14 @@ export function SharedItemList({ items, onDelete }: SharedItemListProps) {
           className="p-6 bg-dark-lighter rounded-lg border border-primary/10"
         >
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4 min-w-0 flex-1">
               {item.type === 'file' ? (
-                <File className="w-6 h-6 text-primary" />
+                <File className="w-6 h-6 text-primary flex-shrink-0" />
               ) : (
-                <FileText className="w-6 h-6 text-primary" />
+                <FileText className="w-6 h-6 text-primary flex-shrink-0" />
               )}
-              <div>
-                <h3 className="font-medium text-primary">{item.name}</h3>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-medium text-primary truncate pr-4">{item.name}</h3>
                 {item.type === 'file' && (
                   <p className="text-sm text-primary/60">
                     {formatFileSize((item as FileItem).size)}
@@ -41,7 +41,7 @@ export function SharedItemList({ items, onDelete }: SharedItemListProps) {
                 )}
               </div>
             </div>
-            <div className="flex space-x-2">
+            <div className="flex space-x-2 flex-shrink-0">
               {item.type === 'file' && (
                 <button
                   className="p-2 text-primary/60 hover:text-primary rounded-lg hover:bg-primary/10 transition-colors"
